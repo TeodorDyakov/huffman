@@ -73,10 +73,24 @@ char *fileToString(char *file_name) {
 }
 
 void writeCodeBook(FILE* file){
+    int non_zero_chars_cnt = 0;
+
     for (int i = 0; i < MAX_SZ; i++) {
-        if (*codes[i]) {
-            fprintf(file, "%c:%s\n", i, codes[i]);
+        if (counts[i]) {
+            non_zero_chars_cnt++;
         }
+    }
+
+    fprintf(file, "%d", non_zero_chars_cnt);
+
+    for (int i = 0; i < MAX_SZ; i++) {
+        if (codes[i][0] == '\0') {
+            continue;
+        }
+        putc((char)i, file);
+        putc(':', file);
+        fwrite(codes[i], sizeof(char), strlen(codes[i]), file);
+        putc('\n', file);
     }
 }
 
@@ -84,18 +98,18 @@ void writeBitToFile(unsigned char bit, FILE *file, int flush) {
     static int count = 0;
     static char buffer = 0;
     
-    if(flush && count != 0){
+    if(flush){
         buffer <<= (8 - count); 
         fwrite(&buffer, sizeof(buffer), 1, file);
         return;
     }
 
-    buffer <<= 1;
-    if (bit) buffer |= 1;
+    buffer <<= 1;          // Make room for next bit.
+    if (bit) buffer |= 1;  // Set if necessary.
     count++;
 
     if (count == 8) {
-        fwrite(&buffer, sizeof(buffer), 1, file);
+        fwrite(&buffer, sizeof(buffer), 1, file);  // Error handling elided.
         buffer = 0;
         count = 0;
     } 
@@ -164,7 +178,6 @@ int main(int argc, char **argv) {
         
         for (int i = 0; i < len; i++) {
             unsigned char bit = code[i] - '0';
-            // printf("%d", bit);
             writeBitToFile(bit, file, 0);
         }
     }
